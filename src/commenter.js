@@ -4,6 +4,8 @@ import { postUrl } from './scraper.js';
 import { sleep, rand, humanType, dismissOverlays, isAuthenticated } from './session.js';
 import { log } from './logger.js';
 
+const norm = (s) => String(s || '').replace(/\s+/g, ' ').trim();
+
 /**
  * Open a post and leave one comment.
  * Returns {posted: boolean, reason?: string}
@@ -41,27 +43,74 @@ export async function postComment(page, urn, comment) {
   await humanType(page, comment);
   await sleep(rand(900, 2000));
 
-  const typed = (await editor.innerText().catch(() => '')).trim();
-  if (!typed || typed.replace(/\s+/g, ' ') !== comment.replace(/\s+/g, ' ')) {
+  // Compare normalised whitespace — a contenteditable div often reports back
+  // with a trailing newline that doesn't mean typing failed.
+  const typed = await editor.innerText().catch(() => '');
+  if (!norm(typed)) return { posted: false, reason: 'typing_failed' };
+  if (norm(typed) !== norm(comment)) {
     log.warn(`Editor content mismatch. Expected "${comment}", found "${typed}"`);
-    if (!typed) return { posted: false, reason: 'typing_failed' };
+    // Not fatal — LinkedIn sometimes adds invisible spans; the submit path
+    // still works as long as something was typed.
   }
 
-  const submit = await firstMatch(page, SELECTORS.commentSubmit, { timeout: 6000 });
-  if (!submit) return { posted: false, reason: 'submit_button_not_found' };
+  // Prefer scoping the submit search to the specific comment box we just typed
+  // into. That stops us picking up a stray "Post" button somewhere else on
+  // the page (e.g. the composer at the top of the feed).
+  const box = await firstMatch(page, SELECTORS.commentBox, { timeout: 2000 });
+  const scope = box || page;
 
-  const enabled = await submit.isEnabled().catch(() => false);
-  if (!enabled) return { posted: false, reason: 'submit_disabled' };
+  let submit = await firstMatch(scope, SELECTORS.commentSubmit, { timeout: 6000 });
+  // Second attempt against the whole page in case scoping was too tight.
+  if (!submit && scope !== page) {
+    submit = await firstMatch(page, SELECTORS.commentSubmit, { timeout: 2000 });
+  }
 
-  await submit.click({ timeout: 8000 });
+  if (submit) {
+    const enabled = await submit.isEnabled().catch(() => false);
+    if (!enabled) {
+      // Give LinkedIn a moment to enable the button after we finished typing.
+      await sleep(rand(600, 1200));
+    }
+    const okNow = await submit.isEnabled().catch(() => false);
+    if (okNow) {
+      await submit.click({ timeout: 8000 }).catch(() => {});
+    } else {
+      log.warn('Submit button found but not enabled — trying Ctrl+Enter fallback');
+      await pressCtrlEnter(page, editor);
+    }
+  } else {
+    log.warn('submit_button_not_found — trying Ctrl+Enter fallback');
+    await pressCtrlEnter(page, editor);
+  }
+
   await sleep(rand(2500, 4500));
 
   // A cleared editor is LinkedIn's own confirmation that the comment landed.
-  const after = (await editor.innerText().catch(() => '')).trim();
-  if (after && after.replace(/\s+/g, ' ') === comment.replace(/\s+/g, ' ')) {
-    return { posted: false, reason: 'editor_did_not_clear' };
+  const after = norm(await editor.innerText().catch(() => ''));
+  if (after && after === norm(comment)) {
+    // One more chance — LinkedIn sometimes leaves the last typed text in the
+    // DOM briefly before clearing.
+    await sleep(rand(1200, 2200));
+    const after2 = norm(await editor.innerText().catch(() => ''));
+    if (after2 && after2 === norm(comment)) {
+      return { posted: false, reason: submit ? 'editor_did_not_clear' : 'submit_button_not_found' };
+    }
   }
 
   log.ok(`Commented on ${urn}: "${comment}"`);
   return { posted: true };
+}
+
+/**
+ * LinkedIn's own keyboard shortcut for submitting a comment. Works
+ * regardless of what class name the Post button happens to have this week.
+ */
+async function pressCtrlEnter(page, editor) {
+  await editor.focus().catch(() => {});
+  await sleep(rand(150, 350));
+  // Try both — macOS uses Meta, others use Control. Playwright routes to the
+  // right platform key when we use the modifier alias.
+  await page.keyboard.press('Control+Enter').catch(() => {});
+  await sleep(rand(200, 400));
+  await page.keyboard.press('Meta+Enter').catch(() => {});
 }

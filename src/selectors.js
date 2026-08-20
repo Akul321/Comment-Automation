@@ -52,14 +52,38 @@ export const SELECTORS = {
   commentEditor: [
     'div.ql-editor[contenteditable="true"]',
     'div.comments-comment-box__form div[role="textbox"]',
+    '.comments-comment-box div[role="textbox"][contenteditable="true"]',
+    'div[data-placeholder*="dd a comment" i][contenteditable="true"]',
+    'div[data-placeholder*="comment" i][contenteditable="true"]',
+    'div[aria-label*="dd a comment" i][contenteditable="true"]',
     'div[role="textbox"][contenteditable="true"]',
   ],
 
-  // Submit control inside the comment box.
+  // The whole comment box container — we scope the submit-button search to
+  // this so a "Post" button somewhere else on the page can never win.
+  commentBox: [
+    'form.comments-comment-box__form',
+    '.comments-comment-box',
+    '.comments-comment-texteditor',
+    'div[data-view-name*="comment-composer" i]',
+  ],
+
+  // Submit control inside the comment box. Wide list because LinkedIn rotates
+  // class names; role/aria/text/data-* selectors survive those rotations.
   commentSubmit: [
     'button.comments-comment-box__submit-button--cr',
     'button.comments-comment-box__submit-button',
-    '.comments-comment-box form button[type="submit"]',
+    'button.comments-comment-box-comment__submit-button--cr',
+    'button.comments-comment-box-comment__submit-button',
+    'button[data-control-name="comment.post" i]',
+    'button[data-testid*="comment-post" i]',
+    'button[data-testid*="submit-comment" i]',
+    'button[aria-label="Post comment" i]',
+    'button[aria-label^="Post" i]',
+    'button[aria-label*="submit comment" i]',
+    'button:has(span:text-is("Post"))',
+    'button:has-text("Post"):not([aria-label*="repost" i]):not([aria-label*="reaction" i])',
+    'button[type="submit"]',
   ],
 
   // Dismissable overlays that steal clicks.
