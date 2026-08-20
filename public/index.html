@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <div>
+      <h1>Comment desk</h1>
+      <p class="brand-sub" id="run-line">Not running</p>
+    </div>
+  </div>
+  <div class="bar-actions">
+    <button class="btn" id="check-now" disabled>Check now</button>
+    <button class="btn solid" id="run-toggle" disabled>Start</button>
+  </div>
+</header>
+
+<div class="notice" id="notice" hidden></div>
+
+<main>
+
+  <!-- Setup collapses itself once all three steps are done -->
+  <section class="slab" id="setup">
+    <div class="slab-head">
+      <h2 class="eyebrow">Setup</h2>
+      <button class="ghost" id="setup-toggle" hidden>Hide</button>
+    </div>
+
+    <div id="setup-body">
+      <div class="step" id="step-login">
+        <span class="step-num">1</span>
+        <div class="step-main">
+          <h3>Sign in to LinkedIn</h3>
+          <p class="note">A browser window opens on LinkedIn's own page. You type your password there — this app never sees it. The session is saved to this computer only.</p>
+          <div class="status" id="login-state" hidden><span class="pip"></span><span id="login-message"></span></div>
+          <button class="btn" id="login-btn">Sign in</button>
+        </div>
+      </div>
+
+      <div class="step" id="step-profiles">
+        <span class="step-num">2</span>
+        <div class="step-main">
+          <h3>Profiles to watch</h3>
+          <p class="note">Paste LinkedIn profile URLs, one per line or separated by commas. Tracking parameters and duplicates are cleaned up for you.</p>
+          <textarea id="profiles" rows="5" spellcheck="false" placeholder="https://www.linkedin.com/in/first-person&#10;https://www.linkedin.com/in/second-person"></textarea>
+          <div class="inline">
+            <button class="btn" id="save-profiles">Save profiles</button>
+            <span class="note" id="profiles-status"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="step" id="step-llm">
+        <span class="step-num">3</span>
+        <div class="step-main">
+          <h3>Comment writer</h3>
+          <p class="note">Choose what writes the comments. Hosted options need a free API key and read most naturally. The local option runs on your machine with no key. Templates need nothing but read generically.</p>
+          <div class="inline">
+            <select id="provider">
+              <option value="groq">Hosted — Groq</option>
+              <option value="gemini">Hosted — Google Gemini</option>
+              <option value="ollama">Local — Ollama</option>
+              <option value="template">Built-in templates</option>
+            </select>
+            <input type="password" id="llm-key" placeholder="API key" autocomplete="off">
+            <button class="btn" id="save-llm">Save</button>
+          </div>
+          <p class="note" id="llm-status"></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slab">
+    <div class="slab-head">
+      <h2 class="eyebrow">Waiting for you</h2>
+      <span class="tally" id="pending-count">0</span>
+    </div>
+    <p class="note rate" id="rate"></p>
+    <div id="queue"></div>
+  </section>
+
+  <section class="slab">
+    <div class="slab-head">
+      <h2 class="eyebrow">Posted</h2>
+    </div>
+    <div id="posted"></div>
+  </section>
+
+  <section class="slab">
+    <div class="slab-head">
+      <h2 class="eyebrow">Activity</h2>
+      <div class="slab-actions">
+        <button class="ghost" id="skipped-toggle">Skipped</button>
+        <button class="ghost" id="settings-toggle">Limits</button>
+      </div>
+    </div>
+
+    <div class="limits" id="settings" hidden>
+      <label>Comments per day<input type="number" id="s-day" min="1" max="40"></label>
+      <label>Minutes between<input type="number" id="s-gap" min="1" max="240"></label>
+      <label>Delay before posting (sec)<input type="number" id="s-delay" min="0" max="600"></label>
+      <label class="switch">
+        <input type="checkbox" id="s-approve">
+        <span>Hold each draft until I approve it</span>
+      </label>
+      <p class="note warn" id="approve-warn" hidden>With this off, comments go out under your name without anyone reading them first.</p>
+      <button class="btn" id="save-settings">Save limits</button>
+    </div>
+
+    <div id="skipped" hidden></div>
+    <ul class="log" id="log"></ul>
+  </section>
+
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Local data. Contains your LinkedIn session cookies and API keys —
+# never commit this directory.
+data/
+
+# Environment file, may contain API keys
+.env
+
+node_modules/
+npm-debug.log*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

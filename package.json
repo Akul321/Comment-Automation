@@ -1,0 +1,23 @@
+{
+  "name": "linkedin-comment-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Local dashboard that watches LinkedIn profiles and drafts one-line comments for review.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "login": "node src/login.js",
+    "once": "node src/index.js once",
+    "watch": "node src/index.js watch",
+    "status": "node src/index.js status",
+    "reset": "node src/index.js reset",
+    "test": "node smoke-test.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "playwright": "^1.48.2"
+  }
+}

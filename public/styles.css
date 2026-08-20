@@ -1,0 +1,325 @@
+/* ------------------------------------------------------------------ *
+ * Comment desk
+ *
+ * The page's one job: let someone read what the machine will say in
+ * their name, and decide. That is a proof desk, so the surfaces are
+ * carbon-copy stock and the marks are editorial — ink navy for signed
+ * off, proof red for spiked. Deliberately not a traffic-light palette.
+ * ------------------------------------------------------------------ */
+
+:root {
+  --stock:    #e8ecf1;   /* cool blue-grey page, like carbon copy paper */
+  --card:     #ffffff;
+  --sunk:     #f2f5f8;   /* recessed panels */
+  --ink:      #131c26;   /* deep navy-black, never pure black */
+  --muted:    #5c6874;
+  --faint:    #8c98a5;
+  --rule:     #d2dae2;
+  --rule-firm:#b9c4ce;
+
+  --stamp:    #0f3d5c;   /* ink navy — approved, live, signed off */
+  --stamp-bg: #e2ecf4;
+  --mark:     #ab3826;   /* proof red — discarded, failed, warning */
+  --mark-bg:  #f8e7e3;
+
+  --display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --ui: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+
+  --pad: 20px;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background: var(--stock);
+  color: var(--ink);
+  font: 400 15px/1.6 var(--ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 500; }
+
+/* Small caps mono label. Used for structure that encodes something real:
+   section identity, field role. Never decorative. */
+.eyebrow {
+  font: 500 11px var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* -------------------------------------------------------------- bar */
+
+.bar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+  padding: 14px var(--pad);
+  background: var(--stock);
+  border-bottom: 1px solid var(--rule-firm);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+/* A filled square that turns navy while running: the desk is open. */
+.brand-mark {
+  width: 11px; height: 11px; flex: 0 0 11px;
+  background: var(--faint);
+  transition: background .2s;
+}
+body[data-running='true'] .brand-mark { background: var(--stamp); }
+
+.bar h1 { font: 600 16px/1.2 var(--ui); letter-spacing: -0.015em; }
+.brand-sub {
+  margin: 2px 0 0;
+  font: 400 12px var(--mono);
+  color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.bar-actions { display: flex; gap: 8px; }
+
+/* --------------------------------------------------------- controls */
+
+.btn {
+  font: 500 13px var(--ui);
+  padding: 8px 14px;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color .14s, background .14s, color .14s;
+}
+.btn:hover:not(:disabled) { border-color: var(--ink); }
+.btn:disabled { opacity: .42; cursor: not-allowed; }
+.btn.solid { background: var(--stamp); border-color: var(--stamp); color: #fff; }
+.btn.solid:hover:not(:disabled) { background: #0b3149; }
+.btn.strike { color: var(--muted); }
+.btn.strike:hover:not(:disabled) { color: var(--mark); border-color: var(--mark); background: var(--mark-bg); }
+
+.ghost {
+  background: none; border: 0; padding: 0;
+  font: 500 11px var(--mono); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); cursor: pointer;
+}
+.ghost:hover { color: var(--ink); }
+
+input[type='password'], input[type='number'], select, textarea {
+  font: 400 14px var(--ui);
+  padding: 8px 10px;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  background: var(--card);
+  color: var(--ink);
+  width: 100%;
+}
+textarea { font: 400 13px/1.75 var(--mono); resize: vertical; }
+input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible, .ghost:focus-visible {
+  outline: 2px solid var(--stamp); outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------- layout */
+
+main { max-width: 780px; margin: 0 auto; padding: 26px var(--pad) 90px; }
+
+.slab { margin-bottom: 36px; }
+.slab-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-bottom: 9px; margin-bottom: 16px;
+  border-bottom: 1px solid var(--rule-firm);
+}
+.slab-actions { display: flex; gap: 16px; }
+
+/* The count is the one place the display face appears. It is the number
+   that matters: how many things are waiting on a human. */
+.tally {
+  font: 400 30px/1 var(--display);
+  font-variation-settings: 'opsz' 40;
+  color: var(--ink);
+}
+
+.note { margin: 0 0 10px; font-size: 13px; line-height: 1.55; color: var(--muted); }
+.note.warn { color: var(--mark); }
+.note.rate { margin: -6px 0 14px; font-family: var(--mono); font-size: 12px; color: var(--faint); }
+.inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.inline select { width: auto; min-width: 190px; }
+.inline input[type='password'] { flex: 1; min-width: 170px; }
+
+.notice {
+  padding: 11px var(--pad);
+  background: var(--mark-bg);
+  border-bottom: 1px solid var(--mark);
+  color: var(--mark);
+  font-size: 13px;
+}
+
+/* ------------------------------------------------------------ setup */
+
+.step { display: flex; gap: 14px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.step:last-child { border-bottom: 0; }
+
+.step-num {
+  flex: 0 0 22px; height: 22px;
+  display: grid; place-items: center;
+  border: 1px solid var(--rule-firm);
+  font: 500 11px var(--mono);
+  color: var(--muted);
+  background: var(--card);
+}
+.step[data-done='true'] .step-num {
+  background: var(--stamp); border-color: var(--stamp); color: #fff;
+}
+.step[data-done='true'] .step-num::after { content: '✓'; }
+.step[data-done='true'] .step-num { font-size: 0; }
+.step[data-done='true'] .step-num::after { font-size: 12px; }
+
+.step-main { flex: 1; min-width: 0; }
+.step-main h3 { font: 500 15px var(--ui); margin-bottom: 5px; }
+
+.status {
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 12px; margin-bottom: 10px;
+  border: 1px solid var(--rule-firm); border-left-width: 3px;
+  background: var(--card);
+  font-size: 13px; color: var(--muted);
+}
+.status .pip { flex: 0 0 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.status[data-state='waiting'] { border-left-color: var(--mark); background: var(--mark-bg); color: var(--mark); }
+.status[data-state='waiting'] .pip { background: var(--mark); animation: blink 1.3s ease-in-out infinite; }
+.status[data-state='saved'] { border-left-color: var(--stamp); background: var(--stamp-bg); color: var(--stamp); }
+.status[data-state='saved'] .pip { background: var(--stamp); }
+.status[data-state='failed'] { border-left-color: var(--mark); background: var(--mark-bg); color: var(--mark); }
+.status[data-state='failed'] .pip { background: var(--mark); }
+
+@keyframes blink { 0%, 100% { opacity: 1 } 50% { opacity: .3 } }
+
+/* ------------------------------------------------------------ cards */
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+}
+
+/* Slug line: who, when, and a way out to the real thing. */
+.slug {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding-bottom: 11px; margin-bottom: 13px;
+  border-bottom: 1px solid var(--rule);
+  font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase;
+}
+.slug .who { color: var(--ink); }
+.slug .when { color: var(--faint); }
+.slug .out { margin-left: auto; color: var(--muted); text-decoration: none; text-transform: none; letter-spacing: 0; }
+.slug .out:hover { color: var(--stamp); text-decoration: underline; }
+.slug .flag {
+  padding: 2px 7px; background: var(--stamp-bg); color: var(--stamp);
+  letter-spacing: .07em;
+}
+.slug .flag.done { background: var(--sunk); color: var(--muted); }
+
+.field { margin-bottom: 15px; }
+.field:last-of-type { margin-bottom: 16px; }
+.field-label {
+  display: block; margin-bottom: 6px;
+  font: 500 10px var(--mono); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--faint);
+}
+
+/* Source material: quiet, clipped, clearly not the thing being judged. */
+.source {
+  font-size: 13.5px; line-height: 1.7; color: var(--muted);
+  padding-left: 13px; border-left: 2px solid var(--rule);
+  max-height: 6.5em; overflow: hidden; white-space: pre-wrap;
+}
+.source.open { max-height: none; }
+.source.missing { color: var(--mark); font-style: italic; }
+.more { margin-top: 7px; font-size: 11px; }
+
+/* The signature: the draft rendered as it will appear on LinkedIn, because
+   "is this what I want under my name?" is the question being answered. */
+.preview {
+  display: flex; gap: 11px;
+  padding: 13px 14px;
+  background: var(--sunk);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.avatar {
+  flex: 0 0 32px; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--rule-firm);
+  display: grid; place-items: center;
+  font: 500 11px var(--mono); color: var(--card);
+}
+.preview-body { flex: 1; min-width: 0; }
+.preview-name { font: 600 13px var(--ui); color: var(--ink); margin-bottom: 3px; }
+
+.draft {
+  display: block; width: 100%;
+  font: 400 15px/1.55 var(--ui);
+  color: var(--ink);
+  background: none; border: 0; padding: 0; margin: 0;
+  resize: none; overflow: hidden;
+}
+.draft:focus { outline: none; box-shadow: 0 1px 0 0 var(--stamp); }
+
+.acts { display: flex; gap: 8px; align-items: center; }
+.acts .gap { flex: 1; }
+
+.empty {
+  padding: 30px 0; text-align: center;
+  font-size: 13.5px; color: var(--faint);
+}
+
+/* ----------------------------------------------------------- limits */
+
+.limits {
+  display: grid; gap: 13px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  padding: 16px; margin-bottom: 18px;
+  background: var(--card); border: 1px solid var(--rule-firm); border-radius: 3px;
+}
+.limits label { display: grid; gap: 5px; font-size: 12px; color: var(--muted); }
+.limits .switch {
+  grid-column: 1 / -1;
+  display: flex; align-items: center; gap: 9px;
+  font-size: 13px; color: var(--ink);
+}
+.limits .switch input { width: auto; }
+.limits .note { grid-column: 1 / -1; margin: -4px 0 0; }
+.limits .btn { align-self: end; }
+
+/* -------------------------------------------------------- skip, log */
+
+.skips { list-style: none; margin: 0 0 18px; padding: 14px 16px;
+  background: var(--card); border: 1px solid var(--rule-firm); border-radius: 3px; }
+.skips li { display: flex; gap: 12px; padding: 4px 0; font-size: 13px; }
+.skips .why { color: var(--ink); }
+.skips .who { margin-left: auto; font: 400 11px var(--mono); color: var(--faint); }
+
+.log { list-style: none; margin: 0; padding: 0; font: 400 12.5px/1.75 var(--mono); }
+.log li { display: flex; gap: 12px; padding: 2px 0; color: var(--muted); }
+.log time { flex: 0 0 52px; color: var(--faint); }
+.log li[data-level='ok'] { color: var(--stamp); }
+.log li[data-level='warn'], .log li[data-level='error'] { color: var(--mark); }
+
+/* ------------------------------------------------------ responsive */
+
+@media (max-width: 620px) {
+  :root { --pad: 15px; }
+  .bar-actions { width: 100%; }
+  .bar-actions .btn { flex: 1; }
+  .preview { padding: 11px 12px; gap: 9px; }
+  .avatar { flex-basis: 28px; width: 28px; height: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
