@@ -3,6 +3,105 @@ import { db } from './db.js';
 import { log } from './logger.js';
 
 /* ------------------------------------------------------------------ *
+ * 0. Rate-limit state — surfaced to the dashboard through llmHealth()
+ * ------------------------------------------------------------------ */
+
+const health = {
+  // ms since epoch when the provider becomes callable again. 0 = ready.
+  cooldownUntil: 0,
+  lastError: null,
+  lastErrorAt: 0,
+  consecutiveFailures: 0,
+};
+
+export function llmHealth() {
+  return {
+    cooldownUntil: health.cooldownUntil,
+    lastError: health.lastError,
+    lastErrorAt: health.lastErrorAt,
+    ready: Date.now() >= health.cooldownUntil,
+  };
+}
+
+function noteSuccess() {
+  health.cooldownUntil = 0;
+  health.lastError = null;
+  health.consecutiveFailures = 0;
+}
+
+function noteFailure(err, cooldownMs = 0) {
+  health.lastError = err.message || String(err);
+  health.lastErrorAt = Date.now();
+  health.consecutiveFailures++;
+  if (cooldownMs > 0) health.cooldownUntil = Math.max(health.cooldownUntil, Date.now() + cooldownMs);
+}
+
+function parseRetryAfter(res) {
+  const raw = res.headers.get('retry-after');
+  if (!raw) return null;
+  const secs = Number(raw);
+  if (Number.isFinite(secs)) return Math.max(0, secs) * 1000;
+  const when = Date.parse(raw);
+  return Number.isFinite(when) ? Math.max(0, when - Date.now()) : null;
+}
+
+class RateLimitError extends Error {
+  constructor(message, retryAfterMs) {
+    super(message);
+    this.name = 'RateLimitError';
+    this.retryAfterMs = retryAfterMs;
+  }
+}
+
+async function fetchWithBackoff(url, init, { attempts = 3, label = 'llm' } = {}) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  if (Date.now() < health.cooldownUntil) {
+    const wait = health.cooldownUntil - Date.now();
+    throw new RateLimitError(`${label} on cooldown for ${Math.ceil(wait / 1000)}s`, wait);
+  }
+
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    let res;
+    try {
+      res = await fetch(url, init);
+    } catch (err) {
+      // network error — brief exponential backoff, then retry
+      lastErr = err;
+      if (i === attempts - 1) break;
+      await sleep(400 * 2 ** i);
+      continue;
+    }
+
+    if (res.ok) return res;
+
+    const bodyText = await res.text().catch(() => '');
+    if (res.status === 429 || res.status === 503) {
+      const wait = parseRetryAfter(res) ?? 2000 * 2 ** i;
+      health.cooldownUntil = Math.max(health.cooldownUntil, Date.now() + wait);
+      lastErr = new RateLimitError(
+        `${label} rate limited (${res.status}). Backing off ${Math.ceil(wait / 1000)}s.`,
+        wait
+      );
+      if (i === attempts - 1) throw lastErr;
+      await sleep(Math.min(wait, 30_000));
+      continue;
+    }
+
+    if (res.status >= 500 && i < attempts - 1) {
+      lastErr = new Error(`${label} ${res.status}: ${bodyText.slice(0, 200)}`);
+      await sleep(600 * 2 ** i);
+      continue;
+    }
+
+    // 4xx that isn't a rate limit — no point retrying, bad key/model/body.
+    throw new Error(`${label} ${res.status}: ${bodyText.slice(0, 300)}`);
+  }
+  throw lastErr || new Error(`${label} failed after ${attempts} attempts`);
+}
+
+/* ------------------------------------------------------------------ *
  * 1. Prefilter — cheap, deterministic, runs before any model is called
  * ------------------------------------------------------------------ */
 
@@ -104,60 +203,78 @@ function extractJson(raw) {
 }
 
 async function callGroq(post, recent) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${config.llm.groqKey}`,
+  const model = config.llm.groqModel || '';
+  // Groq's OSS + compound models emit chain-of-thought before content, so
+  // they need a bigger token budget than plain instruct models, and accept
+  // reasoning_effort='low' to keep quota usage down for short outputs.
+  const isReasoning = /gpt-oss|compound/i.test(model);
+  const body = {
+    model,
+    temperature: 0.8,
+    max_tokens: isReasoning ? 900 : 300,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt(post, recent) },
+    ],
+  };
+  if (isReasoning) body.reasoning_effort = config.llm.groqReasoningEffort || 'low';
+
+  const res = await fetchWithBackoff(
+    'https://api.groq.com/openai/v1/chat/completions',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.llm.groqKey}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify({
-      model: config.llm.groqModel,
-      temperature: 0.8,
-      max_tokens: 300,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt(post, recent) },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+    { label: 'Groq' }
+  );
   const data = await res.json();
   return extractJson(data.choices?.[0]?.message?.content);
 }
 
 async function callGemini(post, recent) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${config.llm.geminiModel}:generateContent?key=${config.llm.geminiKey}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ role: 'user', parts: [{ text: userPrompt(post, recent) }] }],
-      generationConfig: { temperature: 0.8, maxOutputTokens: 300, responseMimeType: 'application/json' },
-    }),
-  });
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  const res = await fetchWithBackoff(
+    url,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: userPrompt(post, recent) }] }],
+        generationConfig: { temperature: 0.8, maxOutputTokens: 300, responseMimeType: 'application/json' },
+      }),
+    },
+    { label: 'Gemini' }
+  );
   const data = await res.json();
   return extractJson(data.candidates?.[0]?.content?.parts?.[0]?.text);
 }
 
 async function callOllama(post, recent) {
-  const res = await fetch(`${config.llm.ollamaUrl}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: config.llm.ollamaModel,
-      stream: false,
-      format: 'json',
-      options: { temperature: 0.8 },
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt(post, recent) },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`Ollama ${res.status}: ${await res.text()}`);
+  // Local — no shared quota, keep the retry short.
+  const res = await fetchWithBackoff(
+    `${config.llm.ollamaUrl}/api/chat`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.llm.ollamaModel,
+        stream: false,
+        format: 'json',
+        options: { temperature: 0.8 },
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt(post, recent) },
+        ],
+      }),
+    },
+    { label: 'Ollama', attempts: 2 }
+  );
   const data = await res.json();
   return extractJson(data.message?.content);
 }
@@ -260,23 +377,36 @@ export function checkComment(raw) {
  * 5. Public entry point
  * ------------------------------------------------------------------ */
 
+async function callProvider(provider, post, recent) {
+  if (provider === 'groq') return callGroq(post, recent);
+  if (provider === 'gemini') return callGemini(post, recent);
+  if (provider === 'ollama') return callOllama(post, recent);
+  return callTemplate(post);
+}
+
 export async function generateComment(post) {
   const pre = prefilter(post);
   if (pre.skip) return { skip: true, reason: pre.reason };
 
   const recent = db.recentComments(20);
   const provider = config.llm.provider;
+  const attempts = provider === 'template' ? 1 : 2;
 
   let result = null;
-  const attempts = provider === 'template' ? 1 : 2;
+  let rateLimited = false;
 
   for (let i = 0; i < attempts; i++) {
     try {
-      if (provider === 'groq') result = await callGroq(post, recent);
-      else if (provider === 'gemini') result = await callGemini(post, recent);
-      else if (provider === 'ollama') result = await callOllama(post, recent);
-      else result = callTemplate(post);
+      result = await callProvider(provider, post, recent);
+      if (result) noteSuccess();
     } catch (err) {
+      if (err instanceof RateLimitError) {
+        rateLimited = true;
+        noteFailure(err, err.retryAfterMs);
+        log.warn(`${provider} rate limited: ${err.message}`);
+        break; // no point retrying while under cooldown
+      }
+      noteFailure(err);
       log.warn(`LLM call failed (${provider}, attempt ${i + 1}): ${err.message}`);
       continue;
     }
@@ -293,5 +423,55 @@ export async function generateComment(post) {
     result = null;
   }
 
+  // Rate-limited on a hosted provider — fall through to templates so the
+  // desk keeps producing something reviewable rather than going silent.
+  if (rateLimited && provider !== 'template') {
+    const fallback = callTemplate(post);
+    const check = checkComment(fallback.comment);
+    if (check.ok) {
+      return {
+        skip: false,
+        comment: check.comment,
+        note: 'used built-in template — LLM quota exhausted',
+      };
+    }
+  }
+
   return { skip: true, reason: 'no comment passed the quality checks' };
+}
+
+/* ------------------------------------------------------------------ *
+ * 6. Test connection — used by the dashboard's "Test writer" button
+ * ------------------------------------------------------------------ */
+
+/**
+ * Run one throwaway call so the dashboard can prove the current setup works
+ * without waiting for a real post to appear.
+ */
+export async function testLLM() {
+  const provider = config.llm.provider;
+  const stubPost = {
+    author: 'Test Person',
+    text: 'A short synthetic post about how measurement discipline separates teams that ship reliably from teams that do not. We put more weight on latency percentiles than on averages because averages hide the tail.',
+  };
+  if (provider === 'template') {
+    const r = callTemplate(stubPost);
+    return { ok: true, sample: r.comment, provider };
+  }
+  try {
+    const r = await callProvider(provider, stubPost, []);
+    if (!r) return { ok: false, provider, reason: 'no_response' };
+    if (r.should_comment === false) {
+      return { ok: true, provider, sample: `(model declined) ${r.reason || ''}`.trim() };
+    }
+    const check = checkComment(r.comment || '');
+    return { ok: true, provider, sample: check.ok ? check.comment : (r.comment || ''), guardrail: check.ok ? null : check.reason };
+  } catch (err) {
+    return {
+      ok: false,
+      provider,
+      reason: err.message || String(err),
+      retryAfterMs: err.retryAfterMs || null,
+    };
+  }
 }

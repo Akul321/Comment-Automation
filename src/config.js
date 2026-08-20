@@ -84,14 +84,49 @@ export const config = {
   minPostChars: num(process.env.MIN_POST_CHARS, 120),
 
   // LLM. provider: groq | gemini | ollama | template
+  //
+  // Put your GROQ_API_KEY in .env (gitignored). Groq's free tier is generous;
+  // pasting a key in the dashboard works too and is stored under data/.
   llm: {
-    provider: (process.env.LLM_PROVIDER || 'template').toLowerCase(),
+    provider: (process.env.LLM_PROVIDER || 'groq').toLowerCase(),
     groqKey: process.env.GROQ_API_KEY || '',
-    groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+    groqModel: process.env.GROQ_MODEL || 'openai/gpt-oss-20b',
     geminiKey: process.env.GEMINI_API_KEY || '',
-    geminiModel: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     ollamaUrl: process.env.OLLAMA_URL || 'http://localhost:11434',
     ollamaModel: process.env.OLLAMA_MODEL || 'llama3.1:8b',
+    // 'low' | 'medium' | 'high' — passed to Groq OSS/compound reasoning models
+    // so we don't burn quota on chain-of-thought for a one-sentence comment.
+    groqReasoningEffort: process.env.GROQ_REASONING_EFFORT || 'low',
+    // Wired at server start (see settings.js). Kept off the exported object
+    // so no code path can accidentally leak it to the browser.
+  },
+
+  // Public catalogue exposed to the dashboard so users can switch models
+  // without editing files. Free-tier models only. Validated against
+  // Groq's live /models endpoint on 2026-08-21.
+  llmModels: {
+    groq: [
+      { id: 'openai/gpt-oss-20b',            label: 'GPT-OSS 20B (fast, recommended)' },
+      { id: 'openai/gpt-oss-120b',           label: 'GPT-OSS 120B (best quality)' },
+      { id: 'openai/gpt-oss-safeguard-20b',  label: 'GPT-OSS Safeguard 20B (safety-tuned)' },
+      { id: 'groq/compound-mini',            label: 'Compound Mini (agentic, fast)' },
+      { id: 'groq/compound',                 label: 'Compound (agentic, capable)' },
+      { id: 'qwen/qwen3.6-27b',              label: 'Qwen 3.6 27B (multilingual)' },
+    ],
+    gemini: [
+      { id: 'gemini-2.5-flash',              label: 'Gemini 2.5 Flash (recommended)' },
+      { id: 'gemini-2.0-flash',              label: 'Gemini 2.0 Flash' },
+      { id: 'gemini-2.5-flash-lite',         label: 'Gemini 2.5 Flash Lite (highest quota)' },
+      { id: 'gemini-1.5-flash',              label: 'Gemini 1.5 Flash (legacy)' },
+    ],
+    ollama: [
+      { id: 'llama3.1:8b',                   label: 'Llama 3.1 8B' },
+      { id: 'llama3.2:3b',                   label: 'Llama 3.2 3B (light)' },
+      { id: 'qwen2.5:7b',                    label: 'Qwen 2.5 7B' },
+      { id: 'mistral:7b',                    label: 'Mistral 7B' },
+      { id: 'phi3:mini',                     label: 'Phi 3 Mini (tiny)' },
+    ],
   },
 
   // Comment shape

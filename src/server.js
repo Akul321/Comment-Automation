@@ -6,6 +6,7 @@ import { config } from './config.js';
 import { loadSettings, saveSettings, publicSettings, readProfiles, writeProfiles } from './settings.js';
 import { db } from './db.js';
 import { hasSession } from './session.js';
+import { llmHealth, testLLM } from './generator.js';
 import {
   state,
   startWorker,
@@ -85,6 +86,7 @@ function snapshot(since = 0) {
     dailyLimit: config.maxCommentsPerDay,
     budgetLeft: dailyBudgetLeft(),
     blockers: blockers(),
+    llmHealth: llmHealth(),
     events: getEvents(since),
   };
 }
@@ -146,6 +148,16 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'POST' && p === '/api/settings') {
       return send(res, 200, saveSettings(await readBody(req)));
+    }
+    if (req.method === 'POST' && p === '/api/test-llm') {
+      // Optional patch: apply any pending provider/model/key change *before*
+      // testing, so the button reflects what the user just typed rather than
+      // the last saved state.
+      const patch = await readBody(req);
+      if (patch && (patch.llm || patch.provider || patch.apiKey)) {
+        saveSettings(patch.llm ? patch : { llm: patch });
+      }
+      return send(res, 200, await testLLM());
     }
     if (req.method === 'POST' && p === '/api/start') {
       return send(res, 200, { started: startWorker() });

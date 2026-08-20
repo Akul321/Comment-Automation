@@ -19,7 +19,11 @@ const EDITABLE = [
   'requireApproval',
 ];
 
-const EDITABLE_LLM = ['provider', 'groqKey', 'geminiKey', 'ollamaUrl', 'ollamaModel'];
+const EDITABLE_LLM = ['provider', 'groqKey', 'groqModel', 'geminiKey', 'geminiModel', 'ollamaUrl', 'ollamaModel'];
+
+// Which per-provider setting a `apiKey` from the dashboard maps to.
+const KEY_FIELD = { groq: 'groqKey', gemini: 'geminiKey' };
+const MODEL_FIELD = { groq: 'groqModel', gemini: 'geminiModel', ollama: 'ollamaModel' };
 
 export function loadSettings() {
   ensureDataDir();
@@ -45,18 +49,24 @@ export function saveSettings(patch) {
     if (patch[k] !== undefined) config[k] = patch[k];
   }
   if (patch.llm) {
-    for (const k of EDITABLE_LLM) {
-      if (patch.llm[k] !== undefined) config.llm[k] = patch.llm[k];
+    if (patch.llm.provider !== undefined) config.llm.provider = patch.llm.provider;
+    for (const provider of Object.keys(MODEL_FIELD)) {
+      const field = MODEL_FIELD[provider];
+      if (patch.llm[field] !== undefined) config.llm[field] = patch.llm[field];
     }
+    if (patch.llm.ollamaUrl !== undefined) config.llm.ollamaUrl = patch.llm.ollamaUrl;
+
     // The dashboard sends one `apiKey` field; the server files it under
     // whichever provider is selected. Doing this client-side meant a stale
-    // dropdown value could silently discard the key.
-    if (patch.llm.apiKey) {
-      const target = patch.llm.provider || config.llm.provider;
-      if (target === 'groq') config.llm.groqKey = patch.llm.apiKey;
-      if (target === 'gemini') config.llm.geminiKey = patch.llm.apiKey;
+    // dropdown value could silently discard the key. An empty string clears
+    // whatever was saved.
+    if (patch.llm.apiKey !== undefined) {
+      const target = patch.llm.keyFor || patch.llm.provider || config.llm.provider;
+      const field = KEY_FIELD[target];
+      if (field) config.llm[field] = String(patch.llm.apiKey).trim();
     }
   }
+
   const out = {};
   for (const k of EDITABLE) out[k] = config[k];
   out.llm = {};
@@ -74,11 +84,14 @@ export function publicSettings() {
   for (const k of EDITABLE) out[k] = config[k];
   out.llm = {
     provider: config.llm.provider,
+    groqModel: config.llm.groqModel,
+    geminiModel: config.llm.geminiModel,
     ollamaUrl: config.llm.ollamaUrl,
     ollamaModel: config.llm.ollamaModel,
     groqKeySet: Boolean(config.llm.groqKey),
     geminiKeySet: Boolean(config.llm.geminiKey),
   };
+  out.llmModels = config.llmModels;
   return out;
 }
 

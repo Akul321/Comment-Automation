@@ -3,33 +3,68 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Comment desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230f3d5c'/%3E%3Cpath d='M9 12h14M9 16h14M9 20h9' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
 </head>
 <body>
+
+<!-- Inline sprite so icons don't need a second request. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-check" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4 12l5 5L20 6"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 12l16-8-6 18-3-8-7-2z"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5v14l12-7z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5" fill="currentColor"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M4 16V6a2 2 0 0 1 2-2h10"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+    <symbol id="i-eye-off" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3 3l18 18M10.6 6.1A9.9 9.9 0 0 1 12 6c6.5 0 10 6 10 6a13.4 13.4 0 0 1-3 3.6M6 6.6A13.4 13.4 0 0 0 2 12s3.5 6 10 6a9.7 9.7 0 0 0 3.6-.7M14.1 14.1a3 3 0 1 1-4.2-4.2"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path fill="currentColor" d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path fill="currentColor" d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 3l10 18H2z"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 10v5M12 18v.5"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7" cy="15" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10.5 12L21 3M17 7l3 3M14 10l3 3"/></symbol>
+  </defs>
+</svg>
 
 <header class="bar">
   <div class="brand">
     <span class="brand-mark" aria-hidden="true"></span>
-    <div>
+    <div class="brand-text">
       <h1>Comment desk</h1>
       <p class="brand-sub" id="run-line">Not running</p>
     </div>
   </div>
   <div class="bar-actions">
-    <button class="btn" id="check-now" disabled>Check now</button>
-    <button class="btn solid" id="run-toggle" disabled>Start</button>
+    <button class="icon-btn" id="theme-toggle" title="Toggle dark mode" aria-label="Toggle dark mode">
+      <svg class="i" data-light><use href="#i-moon"/></svg>
+      <svg class="i" data-dark><use href="#i-sun"/></svg>
+    </button>
+    <button class="btn" id="check-now" disabled>
+      <svg class="i"><use href="#i-refresh"/></svg><span>Check now</span>
+    </button>
+    <button class="btn solid" id="run-toggle" disabled>
+      <svg class="i"><use href="#i-play"/></svg><span>Start</span>
+    </button>
   </div>
 </header>
 
-<div class="notice" id="notice" hidden></div>
+<div class="banner" id="notice" hidden role="alert">
+  <svg class="i"><use href="#i-warn"/></svg><span id="notice-text"></span>
+</div>
+
+<div class="banner soft" id="rate-banner" hidden>
+  <svg class="i"><use href="#i-bolt"/></svg><span id="rate-banner-text"></span>
+</div>
 
 <main>
 
-  <!-- Setup collapses itself once all three steps are done -->
   <section class="slab" id="setup">
     <div class="slab-head">
       <h2 class="eyebrow">Setup</h2>
@@ -64,18 +99,40 @@
         <span class="step-num">3</span>
         <div class="step-main">
           <h3>Comment writer</h3>
-          <p class="note">Choose what writes the comments. Hosted options need a free API key and read most naturally. The local option runs on your machine with no key. Templates need nothing but read generically.</p>
+          <div class="writer-grid">
+            <label class="field-block">
+              <span class="field-label">Provider</span>
+              <select id="provider">
+                <option value="groq">Hosted — Groq</option>
+                <option value="gemini">Hosted — Google Gemini</option>
+                <option value="ollama">Local — Ollama</option>
+                <option value="template">Built-in templates</option>
+              </select>
+            </label>
+            <label class="field-block">
+              <span class="field-label">Model</span>
+              <select id="model"></select>
+            </label>
+            <label class="field-block field-wide" id="key-block">
+              <span class="field-label">API key</span>
+              <div class="input-with-btn">
+                <input type="password" id="llm-key" placeholder="Paste your API key" autocomplete="off">
+                <button type="button" class="icon-btn small" id="key-reveal" title="Show / hide" aria-label="Show or hide key">
+                  <svg class="i" data-show><use href="#i-eye"/></svg>
+                  <svg class="i" data-hide><use href="#i-eye-off"/></svg>
+                </button>
+              </div>
+            </label>
+          </div>
           <div class="inline">
-            <select id="provider">
-              <option value="groq">Hosted — Groq</option>
-              <option value="gemini">Hosted — Google Gemini</option>
-              <option value="ollama">Local — Ollama</option>
-              <option value="template">Built-in templates</option>
-            </select>
-            <input type="password" id="llm-key" placeholder="API key" autocomplete="off">
-            <button class="btn" id="save-llm">Save</button>
+            <button class="btn solid" id="save-llm">Save writer</button>
+            <button class="btn" id="test-llm">
+              <svg class="i"><use href="#i-bolt"/></svg><span>Test writer</span>
+            </button>
+            <button class="ghost" id="key-clear" hidden>Clear saved key</button>
           </div>
           <p class="note" id="llm-status"></p>
+          <div class="sample" id="llm-sample" hidden></div>
         </div>
       </div>
     </div>
@@ -122,7 +179,28 @@
     <ul class="log" id="log"></ul>
   </section>
 
+  <footer class="foot">
+    <span>Local · no data leaves your machine except the model call.</span>
+    <button class="ghost" id="shortcuts-toggle" title="Keyboard shortcuts (press ?)">shortcuts</button>
+  </footer>
+
 </main>
+
+<div class="toast-host" id="toast-host" aria-live="polite"></div>
+
+<dialog id="shortcuts-dialog">
+  <form method="dialog" class="shortcuts">
+    <h3>Keyboard shortcuts</h3>
+    <dl>
+      <dt><kbd>?</kbd></dt><dd>Show this dialog</dd>
+      <dt><kbd>S</kbd></dt><dd>Start / stop the worker</dd>
+      <dt><kbd>C</kbd></dt><dd>Check now</dd>
+      <dt><kbd>D</kbd></dt><dd>Toggle dark mode</dd>
+      <dt><kbd>Esc</kbd></dt><dd>Close this dialog</dd>
+    </dl>
+    <button class="btn" value="close">Close</button>
+  </form>
+</dialog>
 
 <script src="/app.js"></script>
 </body>
