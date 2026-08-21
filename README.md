@@ -1,43 +1,29 @@
 # Comment desk
 
-A tool that watches a list of LinkedIn profiles, notices when they publish something new, drafts a one-line comment, and posts it once you approve.
+Watches a list of LinkedIn profiles, notices when they post something new, drafts a one-sentence comment, and posts it once you approve. Everything runs on your own machine — the only outbound traffic is the model call that writes the draft, and the eventual comment submission to LinkedIn itself.
 
-It runs entirely on your own computer. There is no server, no account to create, and nothing is uploaded anywhere except the model call that writes the comment.
-
-![Node](https://img.shields.io/badge/node-18%2B-0f3d5c) ![Cost](https://img.shields.io/badge/cost-free-0f3d5c) ![License](https://img.shields.io/badge/license-MIT-0f3d5c)
+![Node](https://img.shields.io/badge/node-18%2B-0f3d5c) ![License](https://img.shields.io/badge/license-MIT-0f3d5c)
 
 ---
 
 ## What it costs
 
-Nothing. Every writer the app supports is free:
+Nothing. All four writers are on a free tier or run locally:
 
-| Writer | Cost | Card required |
-|---|---|---|
-| Groq (default) | Free tier | No |
-| Google Gemini | Free tier | No |
-| Ollama (local) | Free — runs on your machine | No |
-| Built-in templates | Free — no API call | No |
+- **Groq** — generous free tier, no card required
+- **Google Gemini** — free tier via AI Studio, no card required
+- **Ollama** — runs on your machine
+- **Built-in templates** — no API involved
 
-The app does not offer a paid tier and never will. If a free-tier limit is hit, the writer pauses and drafts keep flowing via built-in templates until the window reopens — so a quota spike is never silent and never costs money.
-
----
-
-## What it does
-
-- Checks each profile you list every 10 minutes for new posts
-- Skips anything sensitive — bereavement, illness, layoffs, job-seeking, politics, legal trouble — before a comment is ever written
-- Drafts a short comment using a free hosted AI service, a local model, or built-in templates
-- Shows you each draft next to the original post, laid out the way it will look on LinkedIn
-- Posts it after you press **Post this**, spaced out so it doesn't look automated
+The app never asks for a card and doesn't surface any paid options. If a free tier limits you, the writer pauses and drafts fall back to templates until the window reopens. A hard quota can never turn into a bill because there is no billing hooked up in the first place.
 
 ---
 
 ## Requirements
 
-- **Node.js 18 or newer.** Check with `node -v`. If that fails or shows v16 or lower, install the LTS build from [nodejs.org](https://nodejs.org), then close and reopen your terminal.
+- Node.js 18 or newer. `node -v` will tell you what you have; anything older, install the LTS build from [nodejs.org](https://nodejs.org) and reopen your terminal.
 - A LinkedIn account you're willing to sign in with on this machine.
-- **Optional but recommended:** a free Groq API key from [console.groq.com/keys](https://console.groq.com/keys). You can also skip this and use Ollama or the built-in templates.
+- Optional: a free Groq key from [console.groq.com/keys](https://console.groq.com/keys). Without one you can still use Ollama or the built-in templates.
 
 ---
 
@@ -50,215 +36,179 @@ npm install
 npx playwright install chromium
 ```
 
-`npx playwright install chromium` downloads a browser (~150 MB). It's separate from the one you browse with — it won't touch your bookmarks, extensions, or logins.
+The last command downloads a browser that's separate from the one you use every day — around 150 MB, won't touch your bookmarks or extensions.
 
-### Add your API key
-
-Copy the example env file and paste your Groq key into it. The `.env` file is gitignored, so the key never leaves your machine.
+Put your Groq key somewhere the app can find it:
 
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and set:
+Open `.env` and paste your key next to `GROQ_API_KEY=`. That file is gitignored, so the key stays local. If you'd rather use Ollama or templates, skip this step and pick the provider in the dashboard.
 
-```
-GROQ_API_KEY=gsk_your_key_here
-```
-
-*Prefer another writer?* Skip this step — you'll pick a provider in the dashboard, and the app will work with Ollama or templates without any key.
-
-### Run it
+Then:
 
 ```bash
 npm start
 ```
 
-Open **http://localhost:4141** in your browser. Leave the terminal open — closing it stops the app.
+Open http://localhost:4141. Leave the terminal open — closing it stops the app.
 
 ---
 
-## First-run walkthrough
+## First run
 
-Everything happens in the dashboard. Three steps, in order.
+The dashboard has three setup steps and won't let you start until they're done.
 
-### 1. Sign in to LinkedIn
+**Sign in to LinkedIn.** A browser window opens on LinkedIn's own login page. Type your password there — the app never touches the password field, it just waits for the session to become authenticated and saves the resulting cookies to `data/session.json`. Sessions last a few weeks. When one expires the dashboard tells you to sign in again.
 
-Click **Sign in**. A browser window opens on LinkedIn's own login page — you type your password there. **This app never sees your password.** It waits for the page to become logged in, saves the resulting session cookies to `data/session.json` on your computer, and closes the window.
+**Add profiles.** Paste LinkedIn URLs into the textarea, one per line or comma-separated. Tracking parameters and duplicates get cleaned up automatically. Anything that isn't a profile URL is listed back to you.
 
-The session lasts a few weeks. If it expires, the dashboard tells you and you press Sign in again.
+**Choose a writer.** Pick a provider and a model. Press **Test writer** to run a live call and see a sample sentence — quicker than waiting for a real post to prove the setup works. The current Groq lineup is:
 
-### 2. Add profiles
-
-Paste LinkedIn profile URLs into the textarea — one per line or comma-separated. Tracking parameters and duplicates are cleaned up automatically. Anything that isn't a profile URL is listed back to you so you can fix it.
-
-### 3. Choose a comment writer
-
-Pick a **Provider** and a **Model**. If the provider needs a key you either already set it in `.env` (Groq) or paste one here.
-
-| Provider | What it needs | Notes |
-|---|---|---|
-| Groq | Free key from [console.groq.com/keys](https://console.groq.com/keys) — put in `.env` or paste here | Fastest, most natural results. Default |
-| Google Gemini | Free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) | Comparable quality |
-| Ollama | [Ollama](https://ollama.com) installed and running | No key, no quota, works offline. Needs ~5 GB disk for the model |
-| Built-in templates | Nothing | Works immediately but reads generically. Also used as the fallback when hosted APIs are rate-limited |
-
-Groq models available (validated against the current free tier):
-
-- `openai/gpt-oss-20b` — fast, recommended default
-- `openai/gpt-oss-120b` — best quality
-- `openai/gpt-oss-safeguard-20b` — safety-tuned
-- `groq/compound` / `groq/compound-mini` — agentic
+- `openai/gpt-oss-20b` — fast, sensible default
+- `openai/gpt-oss-120b` — better quality, slower, tighter quota
+- `openai/gpt-oss-safeguard-20b` — same size, safety-tuned
+- `groq/compound` / `groq/compound-mini` — agentic variants
 - `qwen/qwen3.6-27b` — multilingual
 
-Press **Test writer** to run one live call and see a sample sentence — proves the setup works without waiting for a real post.
-
-Press **Save writer** to commit the choice.
-
-### 4. Press Start.
+Press **Start** when the setup card collapses. The header square turns navy while the worker is running.
 
 ---
 
-## The first run looks like nothing happened
+## Why nothing happens for a while
 
-That's correct. You'll see lines like:
+The first pass across a profile records everything already on the page and marks all of it as skipped. Only posts that appear on a *later* check count as new.
+
+Without this rule, adding 25 profiles would mean commenting on months of history the moment you press Start — the shortest possible path to a restricted account. You'll see lines like:
 
 ```
 alice-example: added. 14 existing posts recorded and skipped — only new posts from now on.
 ```
 
-Every profile you add has its whole existing backlog **recorded and permanently skipped**. Only posts that appear on a *later* check count as new.
-
-Without this, adding 25 profiles would mean commenting on months of history in one burst — the fastest way to get a LinkedIn account restricted.
-
-So the queue stays empty until someone you're watching actually posts. With 25 active profiles, expect the first drafts within a few hours. **Check now** forces an immediate check but won't bypass the backfill rule.
+So the queue stays empty until someone you're watching actually posts. With 25 active profiles you'll usually see the first drafts within a few hours. **Check now** forces an immediate pass but won't bypass the backfill rule.
 
 ---
 
 ## Reviewing drafts
 
-Each card in *Waiting for you* shows the original post in small grey text, then your draft rendered as a LinkedIn comment — because the question you're answering is *"do I want this under my name?"*
+Each card in *Waiting for you* shows the original post in small grey text, then your draft rendered the way it will appear on LinkedIn. The layout answers the only question that matters: *do I want this under my name?*
 
 - Click into the comment to edit it, then **Save edit**
 - **Post this** queues it to go out
 - **Copy** copies the comment to your clipboard
 - **Discard** throws it away
 
-Comments are spaced apart and delayed by a few seconds so they don't land the instant a post goes up. Posted items appear under *Posted* with a Copy button so you can grab the exact wording if you need it later.
+Comments are spaced apart and delayed by a few seconds so they don't land the instant a post goes up. Posted items appear under *Posted*, with a Copy button in case you want the exact wording later.
 
-### Turning off approval
+### Auto-post
 
-Under **Limits** there's *Hold each draft until I approve it*, on by default. Turning it off means comments go out under your name with nobody reading them first. Only do that once you've reviewed a few dozen drafts and trust the output.
-
----
-
-## What happens when a free-tier limit is hit
-
-Nothing bad. The app:
-
-1. Reads the API's `Retry-After` response header and sets a global cooldown.
-2. Shows a soft banner and a toast: *Writer cooling down (~Ns). Templates used in the meantime.*
-3. Uses built-in templates for drafts that come in during the cooldown, so the queue keeps producing something reviewable.
-4. Resumes the hosted writer automatically as soon as the cooldown clears.
-
-You do not need to do anything. If you're doing heavy use and want more headroom, add your own key (which has its own quota separate from anyone else's).
+Under **Limits** there's *Hold each draft until I approve it*, on by default. Turning it off means comments go out under your name without anyone reading them first. Don't do that until you've read a few dozen drafts and trust the output.
 
 ---
 
-## Dashboard basics
+## When a free tier throttles you
 
-**Keyboard shortcuts**
+The hosted APIs (Groq, Gemini) publish a `Retry-After` header when you're rate-limited. The app reads it, sets a global cooldown, and shows a soft banner and a toast: *Writer cooling down (~Ns).* During that window the built-in templates keep drafting so the queue doesn't stall. When the cooldown clears the hosted writer resumes automatically. There's nothing to click.
+
+If you're using this heavily and would prefer more headroom, add your own key in the dashboard — separate quota, separate cooldown.
+
+---
+
+## Limits
+
+Under *Activity → Limits*:
+
+- **Comments per day** — hard cap, resets at local midnight. Default 8.
+- **Minutes between** — minimum gap between two comments. Default 10.
+- **Delay before posting** — pause between approval and submission, so comments don't appear the instant a post goes live. Default 40 seconds.
+- **Hold each draft** — whether you approve each one. Default on.
+
+Everything else that can be configured lives in `.env` — `.env.example` shows the full list.
+
+---
+
+## Shortcuts
 
 | Key | Action |
 |---|---|
 | `S` | Start / stop the worker |
 | `C` | Check now |
 | `D` | Toggle dark mode |
-| `?` | Show the shortcuts dialog |
+| `?` | Show this list |
 
-**Dark mode** — auto-detected from your OS on first load, then remembered. Toggle in the top-right corner or press `D`.
-
-**Limits** (under *Activity → Limits*):
-
-| Setting | Default | What it does |
-|---|---|---|
-| Comments per day | 8 | Hard cap, resets at midnight |
-| Minutes between | 10 | Minimum gap between two comments |
-| Delay before posting | 40 sec | Pause so comments don't appear instantly |
-| Hold each draft | on | Whether you approve each comment |
-
-Anything else can be set in `.env` — copy `.env.example` to `.env` to see what's available.
+Dark mode is picked up from your OS on first load and remembered from then on.
 
 ---
 
-## Using it on another computer
+## Running on more than one machine
 
-Clone and install as above, put your key in `.env`, and **sign in again on that machine**.
+Clone and install as above, paste your key into `.env` on the new machine, and **sign in again there**. Do not copy `data/session.json` across — a LinkedIn session is tied to the browser fingerprint and IP that created it. A copied one looks like a hijacked session and trips a security checkpoint.
 
-Do not copy `data/session.json` between computers. A LinkedIn session is tied to the browser fingerprint and IP that created it — a copied one looks like a hijacked session and triggers a security checkpoint.
-
-To share one record of already-seen posts across machines so they never comment twice on the same post:
+If you want two machines to share a single "already-seen" record so they can't comment on the same post twice, point them at a shared folder:
 
 ```bash
 DATA_DIR="/path/to/shared/folder" npm start
 ```
 
-Sessions always stay local regardless.
+Sessions always stay on the local machine regardless.
 
-### Checking the dashboard from your phone
+### Reaching the dashboard from your phone
 
 ```bash
 HOST=0.0.0.0 npm start
 ```
 
-Then open `http://<your-computer-ip>:4141` from any device on the same wifi. There's no password on the dashboard, so use this only on a network you trust.
+Open `http://<your-computer-ip>:4141` from any device on the same wifi. There's no password on the dashboard, so only do this on a network you trust.
 
 ---
 
 ## Troubleshooting
 
-| What you see | Fix |
+| What you see | What it means |
 |---|---|
-| `node: command not found` | Install Node, then reopen your terminal |
-| `EADDRINUSE` | Port 4141 is taken. Run `PORT=4200 npm start` |
-| Sign-in never finishes | Complete every prompt LinkedIn shows, including 2FA |
+| `node: command not found` | Node isn't installed, or your terminal doesn't know about it yet — reopen it |
+| `EADDRINUSE` | Port 4141 is already taken. `PORT=4200 npm start` |
+| Sign-in never finishes | Complete every prompt LinkedIn shows, including 2FA. Some accounts also get an email verification step |
 | *LinkedIn session expired* | Normal every few weeks. Press Sign in again |
-| Queue empty for days | Check **Skipped** — those are the filters working. Also normal on the first day |
-| Everything skipped | Open **Skipped** to see the reason for each |
-| Test writer says *401* / *invalid key* | The key in `.env` (or the one you pasted) is wrong. Get a fresh one from the provider's console |
-| Test writer says *model_not_found* | Switch to a listed model in the dropdown and Save. Free-tier model lineups change occasionally |
-| Rate-limit banner keeps returning | You're at the free-tier quota. Add your own key or wait |
-| `comment_editor_not_found` | LinkedIn changed its layout. Add the new selector to `src/selectors.js` |
+| Queue empty for days | Check *Skipped* — those are the filters working. First-day emptiness is also expected |
+| Everything skipped | Open *Skipped*, each row has the reason next to it |
+| Test writer says *401 / invalid key* | The key in `.env` (or the one you pasted) is wrong. Get a fresh one from the provider's console |
+| Test writer says *model_not_found* | Pick a listed model in the dropdown and Save — the free-tier lineup shifts occasionally |
+| Rate-limit banner keeps coming back | You're at the free-tier ceiling. Add your own key or wait |
+| `submit_all_paths_failed` | LinkedIn's comment box changed enough that all three submit strategies failed. The log will include a *Composer HTML snapshot* line — that's what needs to go into `src/selectors.js` |
 
-Run `npm test` to check the filtering and guardrail logic is working (38 tests).
+`npm test` runs the 38 filtering and guardrail tests. Fast — always worth running before you touch anything in `src/`.
 
 ---
 
-## How it's built
+## How it's laid out
 
 ```
 src/
-  server.js      local web server and JSON API
+  server.js      local HTTP server and JSON API
   worker.js      the loop: scan, draft, post
   scraper.js     reads posts from a profile's activity page
   generator.js   sensitive-topic filter, LLM call, guardrails, rate-limit backoff
   commenter.js   types and submits a comment
   selectors.js   every LinkedIn CSS selector, isolated here
-  session.js     browser launch and login session
+  session.js     browser launch and login state
   db.js          JSON file store
-  settings.js    settings the dashboard can change
+  settings.js    dashboard-editable settings
   config.js      env-var-driven configuration
 public/
-  index.html    the dashboard
-  styles.css    styles (light + dark mode via CSS variables)
-  app.js        client-side rendering and API calls
+  index.html     the dashboard
+  styles.css     styles, light and dark themes via CSS variables
+  app.js         client-side rendering and API calls
 ```
 
-When LinkedIn changes its layout, `src/selectors.js` is the only file that should need editing. Each entry is a list of candidates tried in order.
+When LinkedIn changes its layout, `src/selectors.js` is the only file that should need editing — each entry is a list of candidates tried in order.
 
-Comments are checked in code before they can be posted — length, no emoji, no links, no hashtags, no invented statistics, no openers like "Great post", and no repeat of anything used in the last 40. Guardrails written into a prompt get ignored; these don't.
+Comments are checked in code before they can be posted: length, no emoji, no links, no hashtags, no invented statistics, no openers like *Great post*, no repeat of anything used in the last 40. Guardrails written into a prompt get ignored; these don't.
 
-Hosted API calls go through `fetchWithBackoff` in `src/generator.js` — retries on 5xx, respects `Retry-After` on 429/503, sets a global cooldown, and falls back to built-in templates when the LLM is quota-exhausted. This is how the free tier is kept safe.
+Hosted API calls go through `fetchWithBackoff` in `src/generator.js` — retries on 5xx, respects `Retry-After` on 429/503, sets a global cooldown, and falls back to built-in templates when the LLM is quota-exhausted. That's the machinery that keeps the free tier safe.
+
+Comment submission tries three strategies in order: the selector list, a runtime DOM walk from the editor to find any nearby button whose label matches Post / Reply / Comment, then LinkedIn's own Ctrl+Enter shortcut. If all three miss, the composer's HTML gets dumped into the log so the next fix has evidence to work from.
 
 ---
 
