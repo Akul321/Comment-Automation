@@ -156,10 +156,6 @@ LinkedIn markup changes should only require edits to `src/selectors.js`.
 
 Drafts are filtered before submission for length, banned openers, emoji, links, hashtags, unverifiable statistics, and duplicates within the last 40 comments. Sensitive topics — bereavement, illness, layoffs, job-seeking, politics, legal matters — are excluded at the pre-filter stage.
 
-## Notice
-
-Automated commenting violates LinkedIn's terms of service. Accounts operating at volume may be restricted. Use with a low daily cap and manual review enabled.
-
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
