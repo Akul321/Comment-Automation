@@ -6,19 +6,6 @@ Watches a list of LinkedIn profiles, notices when they post something new, draft
 
 ---
 
-## What it costs
-
-Nothing. All four writers are on a free tier or run locally:
-
-- **Groq** — generous free tier, no card required
-- **Google Gemini** — free tier via AI Studio, no card required
-- **Ollama** — runs on your machine
-- **Built-in templates** — no API involved
-
-The app never asks for a card and doesn't surface any paid options. If a free tier limits you, the writer pauses and drafts fall back to templates until the window reopens. A hard quota can never turn into a bill because there is no billing hooked up in the first place.
-
----
-
 ## Requirements
 
 - Node.js 18 or newer. `node -v` will tell you what you have; anything older, install the LTS build from [nodejs.org](https://nodejs.org) and reopen your terminal.
